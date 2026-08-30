@@ -16,6 +16,7 @@ export interface DownloadOptions {
   url: string;
   platform: PlatformId;
   taskId: string;
+  createdAt: number;
   title: string;
   formatId: string;
   quality: string;
@@ -410,10 +411,23 @@ function sanitizeFilename(name: string): string {
   return s;
 }
 
-/** 下载时使用的文件名主体：优先标题，空标题回退为任务 ID。 */
+/** 本地时间戳后缀 YYYYMMDD-HHmmss，用于区分同一视频的多次下载。 */
+function timestampSuffix(ms: number): string {
+  const d = new Date(ms > 0 ? ms : Date.now());
+  const p = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}` +
+    `-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`
+  );
+}
+
+/**
+ * 下载时使用的文件名主体：标题 + 任务创建时间戳。
+ * 时间戳取自任务创建时间而非当前时间，保证重试/续传时命中同一批 .part 文件。
+ */
 function filenameBase(opts: DownloadOptions): string {
-  const title = sanitizeFilename(opts.title);
-  return title || opts.taskId;
+  const title = sanitizeFilename(opts.title) || opts.taskId;
+  return `${title}_${timestampSuffix(opts.createdAt)}`;
 }
 
 function parseIntSafe(s: string): number {

@@ -6,6 +6,9 @@ const TERMINAL = ['completed', 'failed', 'cancelled'];
 
 let eventSource: EventSource | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectDelay = 1000;
+let stopped = false;
 
 export const useTasksStore = defineStore('tasks', {
   state: () => ({
@@ -56,43 +59,83 @@ export const useTasksStore = defineStore('tasks', {
     },
 
     connect() {
-      if (typeof EventSource !== 'undefined') {
-        eventSource = new EventSource(`${API_BASE}/events`);
-        eventSource.onopen = () => {
-          this.connected = true;
-          void this.fetch();
-        };
-        eventSource.addEventListener('task', (e: MessageEvent) => {
-          try {
-            this.upsert(JSON.parse(e.data) as Task);
-          } catch {
-            /* ignore */
-          }
-        });
-        eventSource.addEventListener('tasks', (e: MessageEvent) => {
-          try {
-            this.replace(JSON.parse(e.data) as Task[]);
-          } catch {
-            /* ignore */
-          }
-        });
-        eventSource.onerror = () => {
-          this.connected = false;
-        };
-      } else {
-        // 降级：轮询
-        void this.fetch();
-        pollTimer = setInterval(() => void this.fetch(), 3000);
+      stopped = false;
+      if (typeof EventSource === 'undefined') {
+        this.startPolling();
+        return;
       }
+      this.openStream();
     },
 
-    disconnect() {
-      eventSource?.close();
-      eventSource = null;
+    openStream() {
+      if (stopped || eventSource) return;
+      const es = new EventSource(`${API_BASE}/events`);
+      eventSource = es;
+      es.onopen = () => {
+        this.connected = true;
+        reconnectDelay = 1000;
+        this.stopPolling();
+        void this.fetch();
+      };
+      es.addEventListener('task', (e: MessageEvent) => {
+        try {
+          this.upsert(JSON.parse(e.data) as Task);
+        } catch {
+          /* ignore */
+        }
+      });
+      es.addEventListener('tasks', (e: MessageEvent) => {
+        try {
+          this.replace(JSON.parse(e.data) as Task[]);
+        } catch {
+          /* ignore */
+        }
+      });
+      es.onerror = () => {
+        this.connected = false;
+        // 后端重启期间 Vite 代理会返回 500，此时浏览器不会自动重连（readyState 直接变 CLOSED），需手动重建。
+        if (es.readyState === EventSource.CLOSED) {
+          es.close();
+          if (eventSource === es) eventSource = null;
+          this.scheduleReconnect();
+        }
+        this.startPolling();
+      };
+    },
+
+    scheduleReconnect() {
+      if (stopped || reconnectTimer) return;
+      const delay = reconnectDelay;
+      reconnectDelay = Math.min(reconnectDelay * 2, 15000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        this.openStream();
+      }, delay);
+    },
+
+    startPolling() {
+      if (stopped || pollTimer) return;
+      void this.fetch();
+      pollTimer = setInterval(() => void this.fetch(), 3000);
+    },
+
+    stopPolling() {
       if (pollTimer) {
         clearInterval(pollTimer);
         pollTimer = null;
       }
+    },
+
+    disconnect() {
+      stopped = true;
+      this.connected = false;
+      eventSource?.close();
+      eventSource = null;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      this.stopPolling();
     },
 
     async add(payload: {

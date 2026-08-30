@@ -257,6 +257,7 @@ class TaskQueue {
           url: t.url,
           platform: t.platform,
           taskId: t.id,
+          createdAt: t.createdAt,
           title: t.title,
           formatId: t.formatId,
           quality: t.quality,
@@ -323,7 +324,8 @@ class TaskQueue {
     t.speed = p.speed;
     t.eta = p.eta;
     t.downloadedBytes = Math.max(t.downloadedBytes, p.downloaded);
-    if (p.total > 0) t.totalBytes = p.total;
+    // DASH 分别下载视频流与音频流，后者的 total 远小于前者；取最大值避免总大小被音频流覆盖。
+    if (p.total > 0) t.totalBytes = Math.max(t.totalBytes, p.total);
     t.updatedAt = Date.now();
 
     const now = Date.now();
@@ -415,6 +417,7 @@ class TaskQueue {
     t.status = 'waiting';
     t.progress = 0;
     t.downloadedBytes = 0;
+    t.totalBytes = 0;
     t.speed = 0;
     t.eta = 0;
     t.errorCode = '';
