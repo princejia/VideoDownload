@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.npm-cache/
+.venv/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Runtime data (downloads + sqlite)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Browser session credentials — never commit exported cookies
+cookies.txt
+*.cookies.txt
+*.cookies
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+.docker-config/
+.netlify/
