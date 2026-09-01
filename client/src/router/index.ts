@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 const router = createRouter({
-  history: createWebHistory(),
+  // 跟随 Vite base，子路径部署（GitHub Pages 项目站点）时路由才能正确匹配
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'home', component: () => import('@/views/HomeView.vue') },
     { path: '/tasks', name: 'tasks', component: () => import('@/views/TasksView.vue'), meta: { title: '下载任务' } },

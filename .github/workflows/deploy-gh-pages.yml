@@ -1,6 +1,6 @@
 # ===== GitHub Pages 静态站点部署（仅前端 UI）=====
 # 推送 main 或手动触发时构建 client/dist 并发布到 GitHub Pages：
-# https://season19840122.github.io/vidfetch/
+# https://<owner>.github.io/<repo>/
 #
 # 注意：vidfetch 的下载后端（Fastify + yt-dlp + ffmpeg + SQLite）无法在 GitHub Pages 上运行，
 # 此 workflow 只发布前端。接入后端：在仓库 Settings → Secrets and variables → Actions →
@@ -38,10 +38,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build client (base=/vidfetch/ for project site)
+      # 项目站点位于 /<repo>/ 子路径，base 由仓库名推导，避免改名后资源 404
+      - name: Build client
         run: npm --workspace client run build
         env:
-          VITE_BASE: /vidfetch/
+          VITE_BASE: /${{ github.event.repository.name }}/
           VITE_API_BASE: ${{ vars.VITE_API_BASE }}
 
       # GitHub Pages 对未知路径返回 404 页，复制 index.html 作为 SPA 回退

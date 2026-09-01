@@ -185,7 +185,7 @@ Cookie 可能会失效，且高频下载有账号被限制的风险；请降低�
 
 ### 部署地址
 
-- GitHub Pages：https://season19840122.github.io/vidfetch/（推送 `main` 自动部署，workflow 见 `.github/workflows/deploy-gh-pages.yml`）
+- GitHub Pages：https://princejia.github.io/VideoDownload/（推送 `main` 自动部署，workflow 见 `.github/workflows/deploy-gh-pages.yml`；子路径 `VITE_BASE` 由仓库名自动推导，改名或 fork 无需改配置）
 - Netlify：https://vidfetch.netlify.app/（`netlify.toml` 已配置构建与 SPA 回退）
 
 ### 接入后端（可选）
